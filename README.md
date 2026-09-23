@@ -67,6 +67,8 @@ Empty directories are tracked with `.gitkeep` placeholders. No training commands
 
 The current code defines ordered control ranges, neutral values, fixed vertex count, head-local coordinates, and validated control-to-mesh samples in `anf_deformer.data`. It uses only the Python standard library. To run its checks without installing the package, set `PYTHONPATH=src` and run `python -m unittest discover -s tests/unit -v`.
 
+Rig metadata can be exchanged as versioned JSON with validation. See the [format and example](docs/data/rig-metadata.md).
+
 ## Data and results
 
 - Rig and mesh assets require appropriate usage rights. No third-party assets are included.
