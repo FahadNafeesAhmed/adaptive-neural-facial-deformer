@@ -67,6 +67,8 @@ Empty directories are tracked with `.gitkeep` placeholders. No training commands
 
 The current code defines ordered control ranges, neutral values, fixed vertex count, head-local coordinates, and validated control-to-mesh samples in `anf_deformer.data`. It uses only the Python standard library. To run its checks without installing the package, set `PYTHONPATH=src` and run `python -m unittest discover -s tests/unit -v`.
 
+`anf_deformer.geometry.MeshTopology` validates ordered triangle indices and checks vertex count against a rig schema. Exporters must also preserve vertex ordering across all poses; matching counts alone cannot establish that.
+
 Rig metadata can be exchanged as versioned JSON with validation. See the [format and example](docs/data/rig-metadata.md).
 
 `SequenceSplit` validates explicit, nonoverlapping train/validation/test assignments for complete animation sequences. See the [partition contract](docs/data/sequence-splits.md).
