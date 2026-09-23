@@ -8,6 +8,12 @@
 ![uv](https://img.shields.io/badge/uv-packaging-DE5FE9)
 ![pytest](https://img.shields.io/badge/tests-34%20passing-0A9EDC?logo=pytest&logoColor=white)
 
+![Ground truth, the raw scan the solver receives, and the solved rig, rendered in Blender](docs/media/demo.gif)
+
+*Left: ground truth. Middle: the raw scan the solver receives, with noise, holes, stray points and a
+turned head. Right: the solved rig, 53 blendshape weights and a head pose recovered from those dots,
+exported to USD and rendered in Blender.*
+
 **Point clouds in. Rig sliders out.**
 
 A face scanner hands you thousands of unlabeled, noisy points. An animator needs 53 sliders.
@@ -19,6 +25,9 @@ curves that opens in Blender, Maya or Houdini.
 A point-patch transformer trained on endless synthetic captures does the heavy lifting. A short
 classical refinement adds the last millimetre. Both are measured head-to-head against a tuned
 non-rigid ICP solver on identical scans.
+
+On noisy scans the hybrid solver lands **0.76 mm** from the true surface: **5.7 times more accurate
+than tuned ICP and 17 times faster**. The network alone reaches 1.32 mm in 1.9 ms per scan.
 
 ## Contents
 
@@ -35,6 +44,7 @@ non-rigid ICP solver on identical scans.
 - [Rig data contracts](#rig-data-contracts)
 - [Testing](#testing)
 - [Benchmark](#benchmark)
+- [Related work](#related-work)
 - [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
 - [Repository layout](#repository-layout)
@@ -85,7 +95,7 @@ Three solvers share one interface, `Solver.solve(points, method)`:
 |---|---|---|
 | `icp` | Coarse-to-fine non-rigid ICP from five head-yaw starts; the best fit is chosen by its own residual, never by ground truth | ~1.3 s per scan |
 | `neural` | One forward pass of the point-patch transformer predicts rotation, translation, identity and 53 weights | ~2 ms per scan (batched) |
-| `hybrid` | The network's prediction seeds 10 fine ICP iterations | ~80 ms per scan |
+| `hybrid` | The network's prediction seeds 10 fine ICP iterations | ~76 ms per scan |
 
 Every method returns the same four things: a 3×3 head rotation, a translation in centimetres,
 100 identity coefficients and 53 blendshape weights in `[0, 1]`. A sequence of scans becomes
@@ -228,7 +238,24 @@ scanned with the full corruption model, solved, and written to `runs/solver/demo
 | `curves.png` | Truth against solved weight curves for the six most active shapes |
 
 Open `scene.usda` in Blender (File, Import, Universal Scene Description) or `usdview` and scrub
-the timeline to compare the solved head with the truth, frame by frame.
+the timeline to compare the solved head with the truth, frame by frame. In Blender 5.2 each head
+arrives with all 53 blend shapes as animated shape keys, the head turn as a transform cache and
+the scan as an animated point cloud. Set the scene to 30 fps; the importer keeps Blender's
+default of 24.
+
+The GIF at the top of this page is rendered headlessly from the same file:
+
+```bash
+blender -b --factory-startup -P scripts/blender_render.py -- runs/solver/demo/scene.usda runs/solver/demo/frames
+uv run --extra media python scripts/make_media.py runs/solver/demo/frames runs/solver/demo/demo
+```
+
+The solved weight curves follow the truth across the whole performance:
+
+![Truth against solved weight curves for the six most active blend shapes](docs/media/weight_curves.png)
+
+Per-frame solving shows as small jitter, and `eyeBlink_L` peaks at 0.65 against a true 0.85; both
+are discussed under [known limitations](#known-limitations).
 
 ## Command line
 
@@ -315,8 +342,9 @@ uv run pytest -q
 
 ## Benchmark
 
-`scripts/evaluate.py` scores every method on the same seeded synthetic scans. Errors are mean
-distances in millimetres over the 7,801-vertex face region.
+`scripts/evaluate.py` scores every method on the same 256 seeded synthetic scans per set. Errors
+are mean distances in millimetres over the 7,801-vertex face region. The network was trained for
+40,000 steps: 2.56 million generated scans in 122 minutes on one RTX 5060 Laptop GPU.
 
 | Metric | Meaning |
 |---|---|
@@ -324,33 +352,72 @@ distances in millimetres over the 7,801-vertex face region.
 | Expression | Error from the expression weights alone, identity held at truth: what the animator inherits |
 | Weight MAE | Mean absolute blendshape weight error |
 
-**Preliminary results**, from a model trained for 600 steps (about two minutes) and 32 noisy
-scans. The full 40,000-step run replaces this table.
+**Noisy scans**: up to 1 mm of noise, holes, outliers, occlusion, head turned up to 35°.
 
 | Method | Surface mm | Surface p90 | Expression mm | Weight MAE | Rotation ° | ms per scan |
 |---|---|---|---|---|---|---|
-| ICP, 5 starts | 4.00 | 7.62 | 2.76 | 0.231 | 3.01 | 1,334 |
-| Neural | 5.36 | 6.47 | 1.87 | 0.077 | 2.25 | 2 |
-| **Hybrid** | **2.59** | **3.74** | **1.61** | 0.148 | 1.97 | 79 |
-| ICP given the true pose (upper bound) | 1.16 | 1.83 | 0.80 | 0.112 | 0.77 | 338 |
+| ICP, 5 starts | 4.35 | 7.72 | 3.22 | 0.244 | 3.21 | 1,298 |
+| Neural | 1.32 | 1.67 | 0.73 | 0.059 | 0.51 | 1.9 |
+| **Hybrid** | **0.76** | **0.94** | **0.54** | 0.063 | **0.50** | 76 |
+| ICP given the true pose (upper bound) | 1.08 | 1.54 | 0.77 | 0.107 | 0.76 | 296 |
 
-Surface error by how far the head is turned:
+**Clean scans**: no noise, holes or outliers, full coverage.
+
+| Method | Surface mm | Surface p90 | Expression mm | Weight MAE | Rotation ° | ms per scan |
+|---|---|---|---|---|---|---|
+| ICP, 5 starts | 4.31 | 7.70 | 3.37 | 0.247 | 3.23 | 1,299 |
+| Neural | 1.22 | 1.46 | 0.70 | 0.062 | 0.51 | 1.8 |
+| **Hybrid** | **0.65** | **0.77** | **0.48** | **0.055** | **0.50** | 77 |
+| ICP given the true pose (upper bound) | 0.92 | 1.27 | 0.69 | 0.091 | 0.69 | 296 |
+
+Surface error on noisy scans by how far the head is turned:
 
 | Method | Yaw 0–10° | Yaw 10–20° | Yaw 20–35° |
 |---|---|---|---|
-| ICP, 5 starts | 2.81 | 4.19 | 5.07 |
-| Hybrid | 2.64 | 2.02 | 2.92 |
+| ICP, 5 starts | 3.80 | 4.14 | 4.85 |
+| Neural | 1.24 | 1.33 | 1.36 |
+| **Hybrid** | **0.73** | **0.76** | **0.77** |
+| ICP given the true pose | 1.00 | 1.04 | 1.17 |
 
-The yaw table is the story. ICP degrades as the head turns because its starting pose gets
-worse; the hybrid stays flat because the network supplies the pose. The upper-bound row shows
-the same thing from the other side: given the true pose, ICP is excellent, so the pose is the
-bottleneck the network removes. The hybrid is 17 times faster than ICP and more accurate even
-with two minutes of training.
+![Surface error during training against the classical solver](docs/media/training_curve.png)
 
-One honest oddity: the hybrid's weight error is higher than the network's alone while its
-surface error is lower. Blend shapes overlap, so the refinement trades toward the weight mix
-that fits the surface best. A prior that keeps refined weights near the network's prediction
-is the planned fix.
+What the numbers say:
+
+- **The hybrid is 5.7 times more accurate than ICP and 17 times faster.** The network alone is
+  3.3 times more accurate and about 680 times faster, batched.
+- **Head pose is what breaks ICP.** Its error grows from 3.80 to 4.85 mm as the head turns; the
+  hybrid stays flat at 0.73 to 0.77 mm because the network supplies the pose.
+- **The hybrid beats ICP even when ICP is handed the true pose** (0.76 against 1.08 mm). The
+  network supplies a good identity and expression as well as a pose. ICP starting from a
+  neutral face settles into a nearby wrong mix of overlapping shapes.
+- **Noise costs little.** Clean to noisy moves the hybrid from 0.65 to 0.76 mm.
+- **Refinement improves the fit more than the sliders.** On noisy scans, weight error barely
+  changes between neural and hybrid (0.059 and 0.063) while surface error falls 42%. Blend
+  shapes overlap, so several weight mixes fit almost equally well. A prior that keeps refined
+  weights near the network's prediction is the planned fix.
+
+## Related work
+
+The closest work is from EA's own research division: **Rig Inversion by Training a
+Differentiable Rig Function** (Marquis Bolduc and Phan, SEED, SIGGRAPH Asia 2022). It inverts a
+production face rig from captured meshes by putting the loss on the mesh, through a learned
+differentiable rig, instead of on the rig parameters, and names architectures tailored to mesh
+data as future work. This project uses the same mesh-space loss, but takes raw, unordered,
+partial point clouds with no shared topology, and uses a point-cloud transformer.
+
+- Holden, Saito and Komura, *Learning an Inverse Rig Mapping for Character Animation*
+  (SCA 2015) and *Learning Inverse Rig Mappings by Nonlinear Regression* (TVCG 2017): the
+  original learned inverse rig.
+- Racković et al., *Accurate and Interpretable Solution of the Inverse Rig for Realistic
+  Blendshape Models with Quadratic Corrective Terms* (2023): optimisation-based inversion with
+  bounded weights, the family the ICP baseline belongs to.
+- Liu, Tran and Liu, *3D Face Modeling from Diverse Raw Scan Data* (ICCV 2019), and Bahri et al.,
+  *Shape My Face* (IJCV 2021): PointNet-style encoders on raw face scans, fitted to a morphable
+  model rather than to artist blend shapes.
+- Grishchenko et al., *Blendshapes GHUM* (2023): real-time ARKit-style blend shapes and a 6D
+  rotation predicted from image landmarks rather than 3D scans.
+- Song, Shi and Reed, *Accurate Face Rig Approximation with Deep Differential Subspace
+  Reconstruction* (SIGGRAPH 2020): the forward direction, relevant to the corrective deformer.
 
 ## Known limitations
 
@@ -360,9 +427,13 @@ is the planned fix.
 - **Linear rig.** ICT-FaceKit is linear blend shapes and real skin is not. The solver can only
   express what the rig can, which is what the corrective deformer addresses.
 - **Per-frame solving.** There is no temporal model yet, so frame-to-frame jitter is not
-  suppressed.
-- **Batch-1 latency.** Farthest-point sampling is a 256-step loop; at batch size 1 it dominates
-  inference time.
+  suppressed; it is visible in the weight curves above.
+- **Eyes are the least observable shapes.** At full strength the eye-gaze and eyelid shapes move
+  the scanned surface only 2.5 to 3.7 mm, against a median of 8.6 mm across all 53 shapes, and
+  the scan barely samples the eye region. In the demo `eyeBlink_L` peaks at 0.65 against a true
+  0.85. Production pipelines track gaze from images for this reason.
+- **Batch-1 latency.** A single scan takes 39 ms through the network, mostly in the 256-step
+  farthest-point sampling loop; batched, it is 1.9 ms per scan.
 - **Head-centred input.** Scans must arrive roughly centred with Y up and the face toward +Z.
 
 ## Roadmap
