@@ -190,6 +190,7 @@ src/anf_deformer/   rig data contracts for the corrective deformer (standard lib
   data/sample.py         validated control-to-mesh pose samples
   data/serialization.py  versioned JSON interchange for rig metadata
   data/splits.py         sequence-level train/validation/test partitions (no leakage)
+  geometry/topology.py   fixed mesh topology: triangle indices, vertex count
   cli.py                 anf-deformer validate-rig
 scripts/
   train_solver.py   training loop
@@ -210,6 +211,9 @@ validates that data:
 - **Rig metadata** ([format](docs/data/rig-metadata.md)): ordered control names, value ranges,
   neutral values, fixed vertex count and head-local coordinates, as versioned JSON.
 - **Pose samples**: one control vector plus the mesh it produces, checked against the metadata.
+- **Mesh topology** (`anf_deformer.geometry.MeshTopology`): validates ordered triangle indices
+  and checks the vertex count against the rig schema. Exporters must also keep vertex order
+  identical across all poses; matching counts alone cannot prove that.
 - **Sequence splits** ([contract](docs/data/sequence-splits.md)): whole animation sequences are
   assigned to train, validation or test, so frames from one performance never leak across sets.
 
