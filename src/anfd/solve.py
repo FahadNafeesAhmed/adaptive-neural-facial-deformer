@@ -156,7 +156,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.json:
         names = [str(n) for n in solver.fm.ex_names]
         frames = [{"file": f.name, "weights": dict(zip(names, map(float, w)))} for f, w in zip(files, res["ex_w"])]
-        args.json.write_text(json.dumps({"method": args.method, "frames": frames}, indent=1))
+        args.json.write_text(json.dumps({"method": args.method, "frames": frames}, indent=1), encoding="utf-8")
     print(f"solved {len(files)} frame(s) with {args.method} in {dt:.2f}s "
           f"({1000 * dt / len(files):.1f} ms/frame) -> {args.output}")
 

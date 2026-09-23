@@ -26,6 +26,8 @@ YAW_BINS = [(0, 10), (10, 20), (20, 35)]
 
 def run_method(solver: Solver, name: str, data: dict, batch: int) -> tuple[dict, float]:
     pts = data["points"]
+    if name in ("neural", "hybrid"):
+        solver.neural(pts[:batch])  # warm up CUDA kernels so timing reflects steady state
     torch.cuda.synchronize()
     t0 = time.time()
     if name == "icp (true pose given)":  # upper bound: not available in practice
@@ -84,7 +86,7 @@ def main():
     torch.cuda.synchronize()
     results["neural_latency_ms_batch1"] = 1000 * (time.time() - t0) / 20
 
-    (run_dir / "results.json").write_text(json.dumps(results, indent=2))
+    (run_dir / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     lines = [f"Evaluated on {args.n} seeded synthetic scans per set. Errors in mm on the face region.",
              "", "| set | method | surface mm | p90 | expression mm | weight MAE | rot ° | ms/frame |",
              "|---|---|---|---|---|---|---|---|"]
