@@ -129,9 +129,10 @@ def export_scene(out: Path, layers: dict[str, tuple[Path, float]], fps: float, n
     world = UsdGeom.Xform.Define(stage, "/World")
     stage.SetDefaultPrim(world.GetPrim())
     for name, (path, x) in layers.items():
-        prim = UsdGeom.Xform.Define(stage, f"/World/{name}")
-        prim.GetPrim().GetReferences().AddReference(Path(path).name)
-        prim.AddTranslateOp().Set(Gf.Vec3d(x, 0, 0))
+        # Offset lives on a parent Xform; the referenced prim is left untyped so it keeps its own
+        # type (SkelRoot / Points) and its own animated xformOps from the referenced file.
+        UsdGeom.Xform.Define(stage, f"/World/{name}").AddTranslateOp().Set(Gf.Vec3d(x, 0, 0))
+        stage.DefinePrim(f"/World/{name}/Asset").GetReferences().AddReference(Path(path).name)
     stage.GetRootLayer().Save()
     return out
 
