@@ -1,0 +1,47 @@
+# Local Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Machine-specific files and credentials
+.env
+.env.*
+!.env.example
+.aws/
+.config/gcloud/
+credentials*.json
+service-account*.json
+*.pem
+*.key
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Large or separately licensed inputs: retain empty directory markers
+/assets/rigs/*
+!/assets/rigs/.gitkeep
+/assets/meshes/*
+!/assets/meshes/.gitkeep
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+
+# Generated outputs and model weights
+/outputs/*
+!/outputs/.gitkeep
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+*.log
