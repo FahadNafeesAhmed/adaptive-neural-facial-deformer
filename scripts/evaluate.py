@@ -101,7 +101,7 @@ def main():
     for m, r in results["noisy"].items():
         lines.append(f"| {m} | " + " | ".join(f"{v:.2f}" for v in r["by_yaw"].values()) + " |")
     lines += ["", f"Network latency, single scan: {results['neural_latency_ms_batch1']:.1f} ms"]
-    (run_dir / "results.md").write_text("\n".join(lines) + "\n")
+    (run_dir / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
 
 
