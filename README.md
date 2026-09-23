@@ -69,6 +69,8 @@ The current code defines ordered control ranges, neutral values, fixed vertex co
 
 Rig metadata can be exchanged as versioned JSON with validation. See the [format and example](docs/data/rig-metadata.md).
 
+`SequenceSplit` validates explicit, nonoverlapping train/validation/test assignments for complete animation sequences. See the [partition contract](docs/data/sequence-splits.md).
+
 ## Data and results
 
 - Rig and mesh assets require appropriate usage rights. No third-party assets are included.
