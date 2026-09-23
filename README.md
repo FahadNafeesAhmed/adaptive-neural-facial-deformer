@@ -2,7 +2,7 @@
 
 Planned research and engineering project exploring efficient facial deformation, contact quality, local control, and adaptive selection of training poses.
 
-**Status: repository structure only.** No model, training pipeline, integration, dataset, or benchmark has been implemented. All components below describe intended responsibilities, not completed features or demonstrated results.
+**Status: early scaffolding.** A typed rig metadata contract is available. No model, training pipeline, integration, dataset, or benchmark has been implemented. Most components below describe intended responsibilities, not completed features or demonstrated results.
 
 ## Planned workflow
 
@@ -63,7 +63,9 @@ adaptive-neural-facial-deformer/
 `-- outputs/                 Generated runs, models, and logs (local only)
 ```
 
-Empty directories are tracked with `.gitkeep` placeholders. No executable files, dependencies, CI workflows, or deployment configuration are included in this initial structure.
+Empty directories are tracked with `.gitkeep` placeholders. No training commands, runtime dependencies, CI workflows, or deployment configuration are included in this initial structure.
+
+The current code defines ordered control ranges, neutral values, fixed vertex count, and head-local coordinates in `anf_deformer.data`. It uses only the Python standard library. To run its checks without installing the package, set `PYTHONPATH=src` and run `python -m unittest discover -s tests/unit -v`.
 
 ## Data and results
 
