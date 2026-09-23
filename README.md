@@ -185,13 +185,39 @@ src/anfd/
   metrics.py     mm-based evaluation metrics
   solve.py       Solver API, point cloud readers, anfd-solve CLI
   usd_io.py      UsdSkel rig export, point cloud export, scene composition
+src/anf_deformer/   rig data contracts for the corrective deformer (standard library only)
+  data/schema.py         rig metadata: ordered controls, ranges, neutral values, vertex count
+  data/sample.py         validated control-to-mesh pose samples
+  data/serialization.py  versioned JSON interchange for rig metadata
+  data/splits.py         sequence-level train/validation/test partitions (no leakage)
+  cli.py                 anf-deformer validate-rig
 scripts/
   train_solver.py   training loop
   evaluate.py       ICP vs neural vs hybrid, by noise level and head yaw
   demo_usd.py       synthetic performance -> truth / scan / solved USD scene + weight curves
 tests/              rig maths, USD round-trip, Procrustes, ICP, network contract, PLY IO
+tests/unit/         rig metadata, pose samples, serialization, splits, CLI
+docs/               data contract formats and the validation guide
 Dockerfile          CPU inference image
 ```
+
+### Rig data contracts
+
+The corrective deformer will train on control-to-mesh samples exported from a production rig,
+so bad data has to be caught before training, not after. `anf_deformer.data` defines and
+validates that data:
+
+- **Rig metadata** ([format](docs/data/rig-metadata.md)): ordered control names, value ranges,
+  neutral values, fixed vertex count and head-local coordinates, as versioned JSON.
+- **Pose samples**: one control vector plus the mesh it produces, checked against the metadata.
+- **Sequence splits** ([contract](docs/data/sequence-splits.md)): whole animation sequences are
+  assigned to train, validation or test, so frames from one performance never leak across sets.
+
+```bash
+uv run anf-deformer validate-rig path/to/rig.json
+```
+
+See the [validation guide](docs/guides/metadata-validation.md) for exit codes.
 
 ## Limitations
 
@@ -208,7 +234,8 @@ Dockerfile          CPU inference image
 
 1. **Neural corrective deformer:** learn the per-vertex residual the linear rig can't express
    (e.g. cheek bulge when smiling with the jaw open), conditioned on the solved weights, and
-   export it as corrective shapes.
+   export it as corrective shapes. Training data flows through the rig data contracts above,
+   and it will be compared against simpler baselines rather than assumed to help.
 2. **Temporal solver:** a sequence model over frames for smooth, jitter-free curves.
 3. **Landmark tracking** from images to give the solver a camera-space pose prior.
 4. **Inference optimisation:** ONNX / TensorRT export and batch-1 latency work
