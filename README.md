@@ -71,6 +71,8 @@ Rig metadata can be exchanged as versioned JSON with validation. See the [format
 
 `SequenceSplit` validates explicit, nonoverlapping train/validation/test assignments for complete animation sequences. See the [partition contract](docs/data/sequence-splits.md).
 
+Run `python -m anf_deformer validate-rig path/to/rig.json` with `PYTHONPATH=src` to check a metadata file from the command line. See [usage and exit codes](docs/guides/metadata-validation.md).
+
 ## Data and results
 
 - Rig and mesh assets require appropriate usage rights. No third-party assets are included.

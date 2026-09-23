@@ -8,5 +8,8 @@ version = "0.1.0"
 description = "Research scaffolding for adaptive neural facial deformation"
 requires-python = ">=3.10"
 
+[project.scripts]
+anf-deformer = "anf_deformer.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
