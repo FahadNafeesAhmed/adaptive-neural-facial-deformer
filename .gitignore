@@ -1,13 +1,45 @@
+# Local Python environments and caches
 .venv/
+venv/
 __pycache__/
-*.pyc
-data/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Machine-specific files and credentials
+.env
+.env.*
+!.env.example
+.aws/
+.config/gcloud/
+credentials*.json
+service-account*.json
+*.pem
+*.key
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Third-party model data, caches and eval sets (rebuilt locally)
 external/
+data/
+assets/
+
+# Generated runs, model weights and exports
 runs/
+outputs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
 *.usd
 *.usda
 *.usdc
-*.onnx
-*.pt
-.pytest_cache/
-.ruff_cache/
+*.log
