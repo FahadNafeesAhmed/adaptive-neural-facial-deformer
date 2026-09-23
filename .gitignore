@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+external/
+runs/
+*.usd
+*.usda
+*.usdc
+*.onnx
+*.pt
+.pytest_cache/
+.ruff_cache/
