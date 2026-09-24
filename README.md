@@ -12,7 +12,11 @@
 
 *Left: ground truth. Middle: the raw scan the solver receives, with noise, holes, stray points and a
 turned head. Right: the solved rig, 53 blendshape weights and a head pose recovered from those dots,
-exported to USD and rendered in Blender.*
+exported to USD and rendered in Blender.* Full-resolution video: [`docs/media/demo.mp4`](docs/media/demo.mp4).
+
+**Included in this repository:** the trained model ([`weights/solver.pt`](weights/solver.pt)),
+the [final benchmark](results/results.md) with its [raw numbers](results/results.json), and the
+[full training log](results/training_log.jsonl). No training is needed to try it.
 
 **Point clouds in. Rig sliders out.**
 
@@ -208,20 +212,32 @@ uv run pytest -q
 The first test run parses the 154 ICT meshes into `data/ict_model.npz` (about 25 s); every run
 after that loads it instantly.
 
-Train, evaluate and build the demo:
+### Use the pretrained model
+
+`weights/solver.pt` is the model behind every number on this page: 5.42 M parameters, trained for
+40,000 steps (2.56 million generated scans, 122 minutes on an RTX 5060 Laptop GPU). Every tool
+picks it up automatically when there is no local training run:
+
+```bash
+uv run python scripts/evaluate.py --n 256
+uv run python scripts/demo_usd.py --method hybrid
+uv run anfd-solve scans/ -o performance.usda
+```
+
+Evaluation reproduces [`results/results.md`](results/results.md); the demo writes the USD scene
+behind the video at the top of this page.
+
+### Train your own
 
 ```bash
 uv run python scripts/train_solver.py --steps 40000 --batch 64 --run solver
-uv run python scripts/evaluate.py --run solver --n 256
-uv run python scripts/demo_usd.py --run solver --method hybrid
 ```
 
-Training takes about two hours on an RTX 5060 Laptop GPU (0.18 s per step, 3.3 GB peak) and
-checkpoints every 2,000 steps. Evaluation writes `runs/solver/results.md`.
-
-| Variable | Purpose |
-|---|---|
-| `ANFD_MODEL` | Path of the cached face model, default `data/ict_model.npz`; set inside the Docker image |
+Training runs at 0.18 s per step with a 3.3 GB peak and checkpoints to `runs/solver/solver.pt`
+every 2,000 steps; that local run then takes precedence over the pretrained weights. The log of
+the run that produced `weights/solver.pt` is in
+[`results/training_log.jsonl`](results/training_log.jsonl). Set `ANFD_MODEL` to move the cached
+face model away from `data/ict_model.npz`; the Docker image does this.
 
 ## The demo
 
@@ -268,7 +284,8 @@ uv run anf-deformer validate-rig path/to/rig.json
 sequence in filename order. Scans are expected head-centred, Y up, face toward +Z; `--units`
 converts from millimetres or metres. `--json` also writes per-frame weights by name.
 
-Docker runs the same solver anywhere, CPU only:
+Docker runs the same solver anywhere, CPU only. The image bakes in `weights/solver.pt` by
+default; pass `--build-arg CKPT=runs/solver/solver.pt` to ship your own run instead:
 
 ```bash
 docker build -t anfd .
@@ -329,22 +346,19 @@ See the [validation guide](docs/guides/metadata-validation.md) for exit codes.
 uv run pytest -q
 ```
 
-| Suite | What it proves |
-|---|---|
-| Rig | Model shapes; the torch rig matches the numpy rig |
-| USD | Round trip through a real USD file, head pose included, within 0.01 mm |
-| Capture | Correct shapes, finite values, weights in `[0, 1]`, same seed gives identical scans |
-| Geometry | Yaw extraction inverts the Euler build; Procrustes recovers a known rigid motion |
-| ICP | From the true pose, clean scans solve to under 2 mm (median) |
-| Network | Output rotations are orthonormal with determinant 1; weights stay in `[0, 1]` |
-| IO | ASCII and binary PLY readers |
-| Contracts | Rig metadata, pose samples, serialization, topology, splits and the validator CLI |
+The 34 tests prove that the torch rig matches the numpy rig; that a USD round trip, head pose
+included, stays within 0.01 mm; that seeded scans are identical and weights stay in `[0, 1]`;
+that Procrustes recovers a known rigid motion and ICP solves clean scans to under 2 mm from the
+true pose; that network rotations are orthonormal with determinant 1; that ASCII and binary PLY
+files read correctly; and that the rig data contracts and their CLI reject bad input.
 
 ## Benchmark
 
 `scripts/evaluate.py` scores every method on the same 256 seeded synthetic scans per set. Errors
 are mean distances in millimetres over the 7,801-vertex face region. The network was trained for
-40,000 steps: 2.56 million generated scans in 122 minutes on one RTX 5060 Laptop GPU.
+40,000 steps: 2.56 million generated scans in 122 minutes on one RTX 5060 Laptop GPU. The tables
+below are copied from [`results/results.md`](results/results.md); the unrounded numbers are in
+[`results/results.json`](results/results.json).
 
 | Metric | Meaning |
 |---|---|
@@ -466,10 +480,19 @@ scripts/
   train_solver.py    training loop
   evaluate.py        ICP, neural and hybrid compared by noise level and head yaw
   demo_usd.py        synthetic performance to a truth, scan and solved USD scene
+  blender_render.py  headless Blender render of that scene
+  make_media.py      rendered frames to MP4 and GIF
+weights/
+  solver.pt          pretrained model, 40,000 steps, 5.42 M parameters
+results/
+  results.md         final benchmark tables
+  results.json       unrounded numbers, including the breakdown by head yaw
+  training_log.jsonl every logged step and evaluation of the pretrained run
 tests/               rig, USD, capture, geometry, ICP, network and IO tests
 tests/unit/          data contract tests
 docs/                data contract formats and the validation guide
-Dockerfile           CPU inference image
+docs/media/          demo GIF and MP4, weight curves, training curve
+Dockerfile           CPU inference image (bundles weights/solver.pt)
 ```
 
 ## Author
