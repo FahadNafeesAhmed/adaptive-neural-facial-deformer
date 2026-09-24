@@ -224,8 +224,7 @@ uv run python scripts/demo_usd.py --method hybrid
 uv run anfd-solve scans/ -o performance.usda
 ```
 
-Evaluation reproduces [`results/results.md`](results/results.md); the demo writes the USD scene
-behind the video at the top of this page.
+These reproduce [`results/results.md`](results/results.md) and the video at the top of the page.
 
 ### Train your own
 
@@ -269,9 +268,6 @@ uv run --extra media python scripts/make_media.py runs/solver/demo/frames runs/s
 The solved weight curves follow the truth across the whole performance:
 
 ![Truth against solved weight curves for the six most active blend shapes](docs/media/weight_curves.png)
-
-Per-frame solving shows as small jitter, and `eyeBlink_L` peaks at 0.65 against a true 0.85; both
-are discussed under [known limitations](#known-limitations).
 
 ## Command line
 
