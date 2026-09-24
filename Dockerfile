@@ -12,7 +12,7 @@ COPY src ./src
 RUN pip install .
 
 COPY data/ict_model.npz /app/data/ict_model.npz
-ARG CKPT=runs/solver/solver.pt
+ARG CKPT=weights/solver.pt
 COPY ${CKPT} /app/model/solver.pt
 
 ENTRYPOINT ["anfd-solve", "--checkpoint", "/app/model/solver.pt"]

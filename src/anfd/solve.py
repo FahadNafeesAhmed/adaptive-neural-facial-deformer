@@ -23,7 +23,16 @@ from anfd.model import FaceSolverNet
 from anfd.synth import CaptureSynth
 from anfd.usd_io import export_rig
 
-DEFAULT_CKPT = ROOT / "runs" / "solver" / "solver.pt"
+PRETRAINED_CKPT = ROOT / "weights" / "solver.pt"
+
+
+def checkpoint_for(run: str = "solver") -> Path:
+    """A locally trained run if one exists, otherwise the pretrained weights shipped in the repo."""
+    local = ROOT / "runs" / run / "solver.pt"
+    return local if local.exists() else PRETRAINED_CKPT
+
+
+DEFAULT_CKPT = checkpoint_for()
 UNITS_TO_CM = {"cm": 1.0, "mm": 0.1, "m": 100.0}
 PLY_TYPES = {"float": "f4", "float32": "f4", "double": "f8", "float64": "f8", "uchar": "u1",
              "uint8": "u1", "char": "i1", "int8": "i1", "short": "i2", "int16": "i2",

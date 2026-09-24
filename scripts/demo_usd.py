@@ -21,7 +21,7 @@ import numpy as np
 import torch
 
 from anfd.metrics import score
-from anfd.solve import Solver
+from anfd.solve import Solver, checkpoint_for
 from anfd.synth import CaptureConfig, CaptureSynth, euler_to_matrix
 from anfd.usd_io import export_point_clouds, export_rig, export_scene
 
@@ -55,9 +55,10 @@ def main():
     ap.add_argument("--seconds", type=float, default=4.0)
     ap.add_argument("--fps", type=float, default=30.0)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--checkpoint", type=Path, help="default: runs/<run>/solver.pt, else weights/solver.pt")
     args = ap.parse_args()
 
-    solver = Solver(ROOT / "runs" / args.run / "solver.pt")
+    solver = Solver(args.checkpoint or checkpoint_for(args.run))
     dev = solver.device
     synth = CaptureSynth(solver.fm, CaptureConfig()).to(dev)
     g = torch.Generator(device=dev).manual_seed(args.seed)

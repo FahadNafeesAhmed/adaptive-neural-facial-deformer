@@ -16,7 +16,7 @@ import torch
 
 from anfd.fitting import REFINE
 from anfd.metrics import score
-from anfd.solve import Solver
+from anfd.solve import Solver, checkpoint_for
 from anfd.synth import CaptureConfig, CaptureSynth, cached_eval_set, yaw_of
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,10 +47,12 @@ def main():
     ap.add_argument("--n", type=int, default=256, help="scans per test set (ICP is ~1.5 s each)")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--skip-icp", action="store_true", help="skip the slow classical baseline")
+    ap.add_argument("--checkpoint", type=Path, help="default: runs/<run>/solver.pt, else weights/solver.pt")
     args = ap.parse_args()
 
     run_dir = ROOT / "runs" / args.run
-    solver = Solver(run_dir / "solver.pt", "cuda")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    solver = Solver(args.checkpoint or checkpoint_for(args.run), "cuda")
     methods = ["neural", "hybrid"] + ([] if args.skip_icp else ["icp", "icp (true pose given)"])
     sets = {
         "clean": (CaptureConfig.clean(), 4321, "eval_clean.pt"),
